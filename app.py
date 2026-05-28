@@ -28,33 +28,55 @@ st.set_page_config(
 # ============================================================
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    /* Global Font */
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif !important;
+    }
+
     /* Main background */
-    .main { background-color: #0a0a0a; }
+    .main { background-color: #ffffff; }
 
     /* Metric cards */
     div[data-testid="metric-container"] {
-        background-color: #1c1c1e;
-        border: 1px solid #2c2c2e;
+        background-color: #ffffff;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
         padding: 16px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     /* Sidebar */
     section[data-testid="stSidebar"] {
-        background-color: #1c1c1e;
-        border-right: 1px solid #2c2c2e;
+        background-color: #0f172a !important;
+        border-right: none;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #f8fafc !important;
+    }
+    /* Style the selectbox */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+        background-color: #1e293b !important;
+        border-color: #334155 !important;
+        color: #f8fafc !important;
+        border-radius: 8px !important;
     }
 
     /* Headers */
-    h1, h2, h3 { color: #f5f5f7; }
+    h1 { color: #111827 !important; font-weight: 800 !important; }
+    h2, h3 { color: #1e293b !important; font-weight: 700 !important; }
 
     /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
     .stTabs [data-baseweb="tab"] {
-        background-color: #2c2c2e;
+        background-color: #1e293b;
         border-radius: 8px;
-        color: #f5f5f7;
-        padding: 8px 20px;
+        color: #f8fafc;
+        padding: 8px 24px;
+        border: none;
         margin-right: 4px;
     }
     .stTabs [aria-selected="true"] {
@@ -79,10 +101,10 @@ st.markdown("""
         transform: scale(1.02);
     }
 
-    /* Badge actual vs predicted */
+    /* Badges */
     .badge-actual {
-        background-color: #30d158;
-        color: black;
+        background-color: #10b981;
+        color: white;
         padding: 4px 12px;
         border-radius: 20px;
         font-weight: bold;
@@ -95,6 +117,28 @@ st.markdown("""
         border-radius: 20px;
         font-weight: bold;
         font-size: 13px;
+    }
+
+    /* Custom Info & Placeholder */
+    .custom-info-box {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        padding: 16px;
+        border-radius: 12px;
+        border: 1px solid #bfdbfe;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+        margin-bottom: 20px;
+    }
+    .placeholder-box {
+        border: 2px dashed #cbd5e1;
+        border-radius: 16px;
+        padding: 60px 20px;
+        text-align: center;
+        color: #94a3b8;
+        background-color: #f8fafc;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -124,7 +168,7 @@ def load_data():
     store_share       = pd.read_csv('store_share.csv')
     store_cat_avg     = pd.read_csv('store_cat_avg.csv')
     prophet_forecast  = pd.read_csv('prophet_forecast.csv')
-    master_df         = pd.read_csv('master_df.csv')
+    master_df         = pd.read_csv('master_df.csv.gz')
 
     with open('country_store_map.json', 'r') as f:
         country_store_map = json.load(f)
@@ -219,10 +263,10 @@ print("✅ Part 2 done!")
 # ============================================================
 st.markdown("""
     <div style='text-align:center; padding: 20px 0px 10px 0px;'>
-        <h1 style='color:#f5f5f7; font-size:42px; font-weight:700;'>
+        <h1 style='color:#1c1c1e; font-size:42px; font-weight:700;'>
             🍎 Apple Retail Demand Forecasting
         </h1>
-        <p style='color:#86868b; font-size:18px;'>
+        <p style='color:#333333; font-size:18px;'>
             Real-time Sales Intelligence & Predictive Analytics Platform
         </p>
     </div>
@@ -329,9 +373,9 @@ with st.sidebar:
     # --- Model Info ---
     st.markdown("""
         <div style='text-align:center;'>
-            <p style='color:#86868b; font-size:12px;'>
-                🤖 XGBoost R² = 0.6375<br>
-                🌊 Prophet R² = 0.9099<br>
+            <p style='color:#333333; font-size:12px;'>
+                🤖 XGBoost Active<br>
+                🌊 Prophet Active<br>
                 📊 1M+ transactions trained<br>
                 🗓️ 2020–2024 historical data
             </p>
@@ -355,16 +399,16 @@ tab1, tab2, tab3, tab4 = st.tabs([
 with tab1:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
-            <h2 style='color:#f5f5f7; margin:0;'>📈 Demand Prediction</h2>
+            <h2 style='color:#1c1c1e; margin:0;'>📈 Demand Prediction</h2>
             <span class='{"badge-actual" if year <= 2024 else "badge-predicted"}'>
                 {"✅ ACTUAL DATA" if year <= 2024 else "🔮 AI PREDICTED"}
             </span>
         </div>
-        <p style='color:#86868b;'>
+        <p style='color:#333333;'>
             {"Real sales data from dataset for" if year <= 2024 else "XGBoost model forecast for"}
-            <b style='color:#f5f5f7;'>{month_name} {year}</b> |
-            <b style='color:#f5f5f7;'>{branch_name}</b> |
-            <b style='color:#f5f5f7;'>{country}</b>
+            <b style='color:#1c1c1e;'>{month_name} {year}</b> |
+            <b style='color:#1c1c1e;'>{branch_name}</b> |
+            <b style='color:#1c1c1e;'>{country}</b>
         </p>
     """, unsafe_allow_html=True)
 
@@ -511,7 +555,7 @@ with tab1:
                 c2.metric("💰 Predicted Revenue", f"${pred_rev:,}",
                           f"{delta:+,} units vs last")
                 c3.metric("💵 Avg Price",         f"${avg_p:,}",  "Based on history")
-                c4.metric("🎯 Model R²",           "0.6375",       "XGBoost score")
+                c4.metric("🎯 Forecast Engine",    "XGBoost",      "Active")
 
                 st.divider()
 
@@ -596,23 +640,31 @@ with tab1:
                 st.dataframe(pred_display[['Month','Predicted Units','Predicted Revenue']],
                              use_container_width=True, hide_index=True)
     else:
-        st.info("👈 Select your filters from the sidebar and click **🚀 Generate Forecast**")
+        st.markdown("""
+            <div class='custom-info-box'>
+                👉 <span>Select your filters from the sidebar and click <b>🚀 Generate Forecast</b></span>
+            </div>
+            <div class='placeholder-box'>
+                <div style='font-size: 48px; margin-bottom: 10px;'>📈</div>
+                <div style='font-size: 16px; font-weight: 500;'>Forecast visualisations will appear here after selection</div>
+            </div>
+        """, unsafe_allow_html=True)
 # ============================================================
 # TAB 2 — SALES ANALYTICS
 # ============================================================
 with tab2:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
-            <h2 style='color:#f5f5f7; margin:0;'>💰 Sales Analytics</h2>
+            <h2 style='color:#1c1c1e; margin:0;'>💰 Sales Analytics</h2>
             <span class='{"badge-actual" if year <= 2024 else "badge-predicted"}'>
                 {"✅ ACTUAL DATA" if year <= 2024 else "🔮 AI PREDICTED"}
             </span>
         </div>
-        <p style='color:#86868b;'>
+        <p style='color:#333333;'>
             Revenue breakdown for
-            <b style='color:#f5f5f7;'>{month_name} {year}</b> |
-            <b style='color:#f5f5f7;'>{branch_name}</b> |
-            <b style='color:#f5f5f7;'>{country}</b>
+            <b style='color:#1c1c1e;'>{month_name} {year}</b> |
+            <b style='color:#1c1c1e;'>{branch_name}</b> |
+            <b style='color:#1c1c1e;'>{country}</b>
         </p>
     """, unsafe_allow_html=True)
 
@@ -764,7 +816,7 @@ with tab2:
                 c1.metric("💰 Predicted Revenue", f"${total_pred_rev:,}")
                 c2.metric("📦 Predicted Units",   f"{total_pred_qty:,}")
                 c3.metric("🏆 Top Category",      best_pred_cat)
-                c4.metric("🎯 Model R²",           "0.6375")
+                c4.metric("🎯 Forecast Engine",    "XGBoost")
 
                 st.divider()
 
@@ -823,7 +875,15 @@ with tab2:
                 st.dataframe(pd.DataFrame(yearly_pred),
                              use_container_width=True, hide_index=True)
     else:
-        st.info("👈 Select your filters from the sidebar and click **🚀 Generate Forecast**")
+        st.markdown("""
+            <div class='custom-info-box'>
+                👉 <span>Select your filters from the sidebar and click <b>🚀 Generate Forecast</b></span>
+            </div>
+            <div class='placeholder-box'>
+                <div style='font-size: 48px; margin-bottom: 10px;'>📈</div>
+                <div style='font-size: 16px; font-weight: 500;'>Forecast visualisations will appear here after selection</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 # ============================================================
 # TAB 3 — INVENTORY FORECASTING
@@ -831,16 +891,16 @@ with tab2:
 with tab3:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
-            <h2 style='color:#f5f5f7; margin:0;'>📦 Inventory Forecasting</h2>
+            <h2 style='color:#1c1c1e; margin:0;'>📦 Inventory Forecasting</h2>
             <span class='{"badge-actual" if year <= 2024 else "badge-predicted"}'>
                 {"✅ ACTUAL DATA" if year <= 2024 else "🔮 AI PREDICTED"}
             </span>
         </div>
-        <p style='color:#86868b;'>
+        <p style='color:#333333;'>
             Stock recommendations for
-            <b style='color:#f5f5f7;'>{month_name} {year}</b> |
-            <b style='color:#f5f5f7;'>{branch_name}</b> |
-            <b style='color:#f5f5f7;'>{country}</b>
+            <b style='color:#1c1c1e;'>{month_name} {year}</b> |
+            <b style='color:#1c1c1e;'>{branch_name}</b> |
+            <b style='color:#1c1c1e;'>{country}</b>
         </p>
     """, unsafe_allow_html=True)
 
@@ -1105,7 +1165,15 @@ with tab3:
                              use_container_width=True, hide_index=True)
 
     else:
-        st.info("👈 Select your filters from the sidebar and click **🚀 Generate Forecast**")
+        st.markdown("""
+            <div class='custom-info-box'>
+                👉 <span>Select your filters from the sidebar and click <b>🚀 Generate Forecast</b></span>
+            </div>
+            <div class='placeholder-box'>
+                <div style='font-size: 48px; margin-bottom: 10px;'>📈</div>
+                <div style='font-size: 16px; font-weight: 500;'>Forecast visualisations will appear here after selection</div>
+            </div>
+        """, unsafe_allow_html=True)
 
 
 
@@ -1115,16 +1183,16 @@ with tab3:
 with tab4:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
-            <h2 style='color:#f5f5f7; margin:0;'>🌊 Seasonal Analysis</h2>
+            <h2 style='color:#1c1c1e; margin:0;'>🌊 Seasonal Analysis</h2>
             <span class='{"badge-actual" if year <= 2024 else "badge-predicted"}'>
                 {"✅ ACTUAL DATA" if year <= 2024 else "🔮 PROPHET FORECAST"}
             </span>
         </div>
-        <p style='color:#86868b;'>
+        <p style='color:#333333;'>
             Seasonal patterns for
-            <b style='color:#f5f5f7;'>{country}</b> |
-            <b style='color:#f5f5f7;'>{branch_name}</b> |
-            <b style='color:#f5f5f7;'>Full Year {year}</b>
+            <b style='color:#1c1c1e;'>{country}</b> |
+            <b style='color:#1c1c1e;'>{branch_name}</b> |
+            <b style='color:#1c1c1e;'>Full Year {year}</b>
         </p>
     """, unsafe_allow_html=True)
 

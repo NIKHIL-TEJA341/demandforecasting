@@ -1,6 +1,5 @@
 *.ipynb
-*.csv
-*.pkl
+master_df.csv
 dataset/
 __pycache__/
 .env
