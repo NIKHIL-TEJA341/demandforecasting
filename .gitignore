@@ -1,0 +1,6 @@
+*.ipynb
+*.csv
+*.pkl
+dataset/
+__pycache__/
+.env
