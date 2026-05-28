@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pickle
 import json
+import gc
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -162,7 +163,7 @@ def load_models():
         le_country = pickle.load(f)
     return xgb_model, prophet_model, le_store, le_category, le_country
 
-@st.cache_data
+@st.cache_resource
 def load_data():
     monthly_store     = pd.read_csv('monthly_store.csv')
     store_share       = pd.read_csv('store_share.csv')
@@ -1550,3 +1551,8 @@ with tab4:
 
     else:
         st.info("👈 Select your filters from the sidebar and click **🚀 Generate Forecast**")
+
+# ============================================================
+# MEMORY CLEANUP
+# ============================================================
+gc.collect()
