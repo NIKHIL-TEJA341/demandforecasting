@@ -153,15 +153,13 @@ print("✅ Part 1 done!")
 def load_models():
     with open('xgb_model.pkl', 'rb') as f:
         xgb_model = pickle.load(f)
-    with open('prophet_model.pkl', 'rb') as f:
-        prophet_model = pickle.load(f)
     with open('le_store.pkl', 'rb') as f:
         le_store = pickle.load(f)
     with open('le_category.pkl', 'rb') as f:
         le_category = pickle.load(f)
     with open('le_country.pkl', 'rb') as f:
         le_country = pickle.load(f)
-    return xgb_model, prophet_model, le_store, le_category, le_country
+    return xgb_model, None, le_store, le_category, le_country
 
 @st.cache_resource
 def load_data():
@@ -1398,9 +1396,15 @@ with tab4:
             else:
                 # ── PROPHET SEASONAL FORECAST ──
 
-                forecast_year = prophet_forecast[
-                    prophet_forecast['ds'].dt.year == year
-                ].copy()
+                if 'country' in prophet_forecast.columns:
+                    forecast_year = prophet_forecast[
+                        (prophet_forecast['ds'].dt.year == year) &
+                        (prophet_forecast['country'] == country)
+                    ].copy()
+                else:
+                    forecast_year = prophet_forecast[
+                        prophet_forecast['ds'].dt.year == year
+                    ].copy()
 
                 forecast_year['month']      = forecast_year['ds'].dt.month
                 forecast_year['month_name'] = forecast_year['month'].apply(
@@ -1420,9 +1424,15 @@ with tab4:
                     total_pred= int(forecast_year['yhat'].sum())
 
                     # Compare with last actual year
-                    last_actual_total = monthly_store[
-                        monthly_store['year'] == 2024
-                    ]['total_quantity'].sum()
+                    if 'country' in prophet_forecast.columns:
+                        last_actual_total = monthly_store[
+                            (monthly_store['year'] == 2024) &
+                            (monthly_store['country'] == country)
+                        ]['total_quantity'].sum()
+                    else:
+                        last_actual_total = monthly_store[
+                            monthly_store['year'] == 2024
+                        ]['total_quantity'].sum()
                     growth = ((total_pred - last_actual_total) / last_actual_total * 100)
 
                     # KPI Cards
@@ -1515,8 +1525,13 @@ with tab4:
                                  use_container_width=True, hide_index=True)
 
                     st.markdown("### 📈 Full Timeline: Actual + Forecast")
-                    hist_all = monthly_store.groupby(
-                        ['year','month'])['total_quantity'].sum().reset_index()
+                    if 'country' in prophet_forecast.columns:
+                        hist_all = monthly_store[
+                            monthly_store['country'] == country
+                        ].groupby(['year','month'])['total_quantity'].sum().reset_index()
+                    else:
+                        hist_all = monthly_store.groupby(
+                            ['year','month'])['total_quantity'].sum().reset_index()
                     hist_all['date'] = pd.to_datetime(
                         hist_all['year'].astype(str) + '-' +
                         hist_all['month'].astype(str) + '-01'
@@ -1530,9 +1545,15 @@ with tab4:
                         name='Actual (2020-2024)',
                         line=dict(color='#30d158', width=2)
                     ))
-                    future_fc = prophet_forecast[
-                        prophet_forecast['ds'].dt.year >= 2025
-                    ]
+                    if 'country' in prophet_forecast.columns:
+                        future_fc = prophet_forecast[
+                            (prophet_forecast['ds'].dt.year >= 2025) &
+                            (prophet_forecast['country'] == country)
+                        ]
+                    else:
+                        future_fc = prophet_forecast[
+                            prophet_forecast['ds'].dt.year >= 2025
+                        ]
                     fig8.add_trace(go.Scatter(
                         x=future_fc['ds'],
                         y=future_fc['yhat'].clip(lower=0),
