@@ -185,16 +185,27 @@ def load_data():
     prophet_forecast['yhat_lower'] = prophet_forecast['yhat_lower'].clip(lower=0)
     prophet_forecast['yhat_upper'] = prophet_forecast['yhat_upper'].clip(lower=0)
 
+    monthly_season = monthly_store.groupby('month')['total_quantity'].sum().reset_index()
+    monthly_season['seasonal_ratio'] = (
+        monthly_season['total_quantity'] /
+        monthly_season['total_quantity'].mean()
+    )
+    monthly_season_ratio = dict(
+        zip(monthly_season['month'], monthly_season['seasonal_ratio'])
+    )
+
     return (monthly_store, store_share, store_cat_avg,
             prophet_forecast, master_df,
-            country_store_map, features)
+            country_store_map, features,
+            monthly_season_ratio)
 
 # Load everything
 with st.spinner("🍎 Loading Apple Retail Platform..."):
     xgb_model, prophet_model, le_store, le_category, le_country = load_models()
     (monthly_store, store_share, store_cat_avg,
      prophet_forecast, master_df,
-     country_store_map, features) = load_data()
+     country_store_map, features,
+     monthly_season_ratio) = load_data()
 
 # ============================================================
 # HELPER: Predict Future (XGBoost)
@@ -255,6 +266,11 @@ def predict_future(store_id, category_name, country, year, month):
     }])
 
     predicted_qty = max(0, xgb_model.predict(input_df)[0])
+
+    if year >= 2025:
+        season_ratio = monthly_season_ratio.get(month, 1.0)
+        predicted_qty = int(round(predicted_qty * season_ratio))
+
     predicted_rev = predicted_qty * avg_price
     return int(predicted_qty), int(predicted_rev)
 
@@ -1380,22 +1396,22 @@ with tab4:
                     st.dataframe(summary, use_container_width=True, hide_index=True)
 
             else:
-                # ── PROPHET SEASONAL FORECAST ──
+                # ── STORE-SPECIFIC SEASONAL FORECAST ──
 
-                forecast_year = prophet_forecast[
-                    prophet_forecast['ds'].dt.year == year
-                ].copy()
+                forecast_year = []
+                for m in range(1, 13):
+                    yhat, _ = predict_future(store_id, category, country, year, m)
+                    forecast_year.append({
+                        'month'       : m,
+                        'month_name'  : month_labels[m-1],
+                        'yhat'        : yhat,
+                        'yhat_lower'  : int(max(0, yhat * 0.90)),
+                        'yhat_upper'  : int(yhat * 1.10)
+                    })
+                forecast_year = pd.DataFrame(forecast_year)
 
-                forecast_year['month']      = forecast_year['ds'].dt.month
-                forecast_year['month_name'] = forecast_year['month'].apply(
-                    lambda x: month_labels[x-1]
-                )
-                forecast_year['yhat']       = forecast_year['yhat'].clip(lower=0).astype(int)
-                forecast_year['yhat_lower'] = forecast_year['yhat_lower'].clip(lower=0).astype(int)
-                forecast_year['yhat_upper'] = forecast_year['yhat_upper'].clip(lower=0).astype(int)
-
-                if forecast_year.empty:
-                    st.warning(f"⚠️ No Prophet forecast available for {year}")
+                if forecast_year['yhat'].sum() == 0:
+                    st.warning(f"⚠️ No forecast available for {year} at {branch_name}")
                 else:
                     peak_idx  = forecast_year['yhat'].idxmax()
                     dip_idx   = forecast_year['yhat'].idxmin()
@@ -1403,11 +1419,12 @@ with tab4:
                     dip_m     = forecast_year.loc[dip_idx,  'month_name']
                     total_pred= int(forecast_year['yhat'].sum())
 
-                    # Compare with last actual year
-                    last_actual_total = monthly_store[
-                        monthly_store['year'] == 2024
+                    # Compare with last actual year for this store
+                    actual_2024_total = monthly_store[
+                        (monthly_store['store_id'] == store_id) &
+                        (monthly_store['year']     == 2024)
                     ]['total_quantity'].sum()
-                    growth = ((total_pred - last_actual_total) / last_actual_total * 100)
+                    growth = ((total_pred - actual_2024_total) / actual_2024_total * 100) if actual_2024_total > 0 else 0
 
                     # KPI Cards
                     c1, c2, c3, c4 = st.columns(4)
@@ -1421,7 +1438,6 @@ with tab4:
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        # Prophet forecast with confidence interval
                         fig6 = go.Figure()
                         fig6.add_trace(go.Scatter(
                             x=forecast_year['month_name'],
@@ -1448,7 +1464,7 @@ with tab4:
                             marker=dict(size=10)
                         ))
                         fig6.update_layout(
-                            title=f'🌊 Prophet Seasonal Forecast — {year}',
+                            title=f'🌊 Branch Seasonal Forecast — {year}',
                             plot_bgcolor='#1c1c1e',
                             paper_bgcolor='#1c1c1e',
                             font_color='#f5f5f7',
@@ -1458,20 +1474,21 @@ with tab4:
                         st.plotly_chart(fig6, use_container_width=True)
 
                     with col2:
-                        # Actual 2024 vs Predicted year
                         actual_2024 = monthly_store[
-                            monthly_store['year'] == 2024
+                            (monthly_store['store_id'] == store_id) &
+                            (monthly_store['year']     == 2024)
                         ].groupby('month')['total_quantity'].sum().reset_index()
 
                         fig7 = go.Figure()
-                        fig7.add_trace(go.Scatter(
-                            x=[month_labels[m-1] for m in actual_2024['month']],
-                            y=actual_2024['total_quantity'],
-                            mode='lines+markers',
-                            name='2024 Actual',
-                            line=dict(color='#30d158', width=2),
-                            marker=dict(size=8)
-                        ))
+                        if not actual_2024.empty:
+                            fig7.add_trace(go.Scatter(
+                                x=[month_labels[m-1] for m in actual_2024['month']],
+                                y=actual_2024['total_quantity'],
+                                mode='lines+markers',
+                                name='2024 Actual',
+                                line=dict(color='#30d158', width=2),
+                                marker=dict(size=8)
+                            ))
                         fig7.add_trace(go.Scatter(
                             x=forecast_year['month_name'],
                             y=forecast_year['yhat'],
@@ -1490,7 +1507,6 @@ with tab4:
                         )
                         st.plotly_chart(fig7, use_container_width=True)
 
-                    # Full forecast table
                     st.markdown(f"### 📋 {year} Monthly Forecast Table")
                     forecast_display = forecast_year[[
                         'month_name','yhat','yhat_lower','yhat_upper'
@@ -1501,13 +1517,19 @@ with tab4:
                     st.dataframe(forecast_display,
                                  use_container_width=True, hide_index=True)
 
-                    # Historical + future combined
                     st.markdown("### 📈 Full Timeline: Actual + Forecast")
-                    hist_all = monthly_store.groupby(
-                        ['year','month'])['total_quantity'].sum().reset_index()
+                    hist_all = monthly_store[
+                        monthly_store['store_id'] == store_id
+                    ].groupby(['year','month'])['total_quantity'].sum().reset_index()
                     hist_all['date'] = pd.to_datetime(
                         hist_all['year'].astype(str) + '-' +
                         hist_all['month'].astype(str) + '-01'
+                    )
+
+                    future_fc = forecast_year.copy()
+                    future_fc['date'] = pd.to_datetime(
+                        future_fc['month'].astype(str) + '-01-' + str(year),
+                        format='%m-%d-%Y'
                     )
 
                     fig8 = go.Figure()
@@ -1518,21 +1540,18 @@ with tab4:
                         name='Actual (2020-2024)',
                         line=dict(color='#30d158', width=2)
                     ))
-                    future_fc = prophet_forecast[
-                        prophet_forecast['ds'].dt.year >= 2025
-                    ]
                     fig8.add_trace(go.Scatter(
-                        x=future_fc['ds'],
-                        y=future_fc['yhat'].clip(lower=0),
+                        x=future_fc['date'],
+                        y=future_fc['yhat'],
                         mode='lines',
-                        name='Prophet Forecast',
+                        name='Forecast',
                         line=dict(color='#0071e3', width=2, dash='dash')
                     ))
                     fig8.add_trace(go.Scatter(
-                        x=pd.concat([future_fc['ds'], future_fc['ds'][::-1]]),
+                        x=pd.concat([future_fc['date'], future_fc['date'][::-1]]),
                         y=pd.concat([
-                            future_fc['yhat_upper'].clip(lower=0),
-                            future_fc['yhat_lower'].clip(lower=0)[::-1]
+                            future_fc['yhat_upper'],
+                            future_fc['yhat_lower'][::-1]
                         ]),
                         fill='toself',
                         fillcolor='rgba(0,113,227,0.1)',
@@ -1540,12 +1559,12 @@ with tab4:
                         name='Confidence Interval'
                     ))
                     fig8.update_layout(
-                        title='📈 Complete Sales Timeline + Prophet Forecast',
+                        title='📈 Complete Sales Timeline + Forecast',
                         plot_bgcolor='#1c1c1e',
                         paper_bgcolor='#1c1c1e',
                         font_color='#f5f5f7',
                         xaxis_title='Date',
-                        yaxis_title='Total Units'
+                        yaxis_title='Units'
                     )
                     st.plotly_chart(fig8, use_container_width=True)
 
