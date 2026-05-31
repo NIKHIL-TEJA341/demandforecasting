@@ -1,7 +1,3 @@
-# ============================================================
-# 🍎 Apple Retail Demand Forecasting Platform
-# ============================================================
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -14,9 +10,6 @@ import gc
 import warnings
 warnings.filterwarnings('ignore')
 
-# ============================================================
-# PAGE CONFIG
-# ============================================================
 st.set_page_config(
     page_title = "Apple Retail Demand Forecasting",
     page_icon  = "🍎",
@@ -24,9 +17,6 @@ st.set_page_config(
     initial_sidebar_state = "expanded"
 )
 
-# ============================================================
-# CUSTOM CSS
-# ============================================================
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -144,11 +134,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-print("✅ Part 1 done!")
-# ============================================================
-# LOAD MODELS & DATA
-# ============================================================
-
 @st.cache_resource
 def load_models():
     with open('xgb_model.pkl', 'rb') as f:
@@ -174,11 +159,9 @@ def load_data():
     with open('features.json', 'r') as f:
         features = json.load(f)
 
-    # Parse dates
     master_df['sale_date']       = pd.to_datetime(master_df['sale_date'])
     prophet_forecast['ds']       = pd.to_datetime(prophet_forecast['ds'])
 
-    # Fix prophet negative values
     prophet_forecast['yhat']       = prophet_forecast['yhat'].clip(lower=0)
     prophet_forecast['yhat_lower'] = prophet_forecast['yhat_lower'].clip(lower=0)
     prophet_forecast['yhat_upper'] = prophet_forecast['yhat_upper'].clip(lower=0)
@@ -197,7 +180,6 @@ def load_data():
             country_store_map, features,
             monthly_season_ratio)
 
-# Load everything
 with st.spinner("🍎 Loading Apple Retail Platform..."):
     xgb_model, prophet_model, le_store, le_category, le_country = load_models()
     (monthly_store, store_share, store_cat_avg,
@@ -205,9 +187,6 @@ with st.spinner("🍎 Loading Apple Retail Platform..."):
      country_store_map, features,
      monthly_season_ratio) = load_data()
 
-# ============================================================
-# HELPER: Predict Future (XGBoost)
-# ============================================================
 def predict_future(store_id, category_name, country, year, month):
     last_known = monthly_store[
         (monthly_store['store_id']      == store_id) &
@@ -216,7 +195,6 @@ def predict_future(store_id, category_name, country, year, month):
 
     if last_known.empty:
         return 0, 0
-
     lag1            = last_known['total_quantity'].iloc[-1]
     lag2            = last_known['total_quantity'].iloc[-2] if len(last_known) >= 2 else lag1
     lag3            = last_known['total_quantity'].iloc[-3] if len(last_known) >= 3 else lag1
@@ -272,10 +250,6 @@ def predict_future(store_id, category_name, country, year, month):
     predicted_rev = predicted_qty * avg_price
     return int(predicted_qty), int(predicted_rev)
 
-print("✅ Part 2 done!")
-# ============================================================
-# HEADER
-# ============================================================
 st.markdown("""
     <div style='text-align:center; padding: 20px 0px 10px 0px;'>
         <h1 style='color:#1c1c1e; font-size:42px; font-weight:700;'>
@@ -288,10 +262,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.divider()
-
-# ============================================================
-# SIDEBAR
-# ============================================================
 with st.sidebar:
     st.markdown("""
         <div style='text-align:center; padding:10px;'>
@@ -304,14 +274,12 @@ with st.sidebar:
 
     st.divider()
 
-    # --- Year ---
     year = st.selectbox(
         "📅 Select Year",
         options = list(range(2020, 2027)),
         index   = 3
     )
 
-    # --- Month ---
     month_names = {
         "January":1,"February":2,"March":3,"April":4,
         "May":5,"June":6,"July":7,"August":8,
@@ -324,28 +292,23 @@ with st.sidebar:
     )
     month = month_names[month_name]
 
-    # --- Country ---
     countries = sorted(country_store_map.keys())
     country   = st.selectbox(
         "🌍 Select Country",
         options = countries
     )
 
-    # --- Branch (filtered by country) ---
     branches    = country_store_map[country]
     branch_names = [b['Store_Name'] for b in branches]
     branch_name  = st.selectbox(
         "🏪 Select Branch",
         options = branch_names
     )
-
-    # Get store_id from selected branch
     store_id = next(
         b['Store_ID'] for b in branches
         if b['Store_Name'] == branch_name
     )
 
-    # --- Category ---
     categories = sorted(monthly_store['category_name'].unique())
     category   = st.selectbox(
         "📦 Select Category",
@@ -354,7 +317,6 @@ with st.sidebar:
 
     st.divider()
 
-    # --- Data Mode Badge ---
     if year <= 2024:
         st.markdown("""
             <div style='background:#1c3a2a; border:1px solid #30d158;
@@ -379,13 +341,9 @@ with st.sidebar:
         """, unsafe_allow_html=True)
 
     st.divider()
-
-    # --- Predict Button ---
     predict_btn = st.button("🚀 Generate Forecast")
-
     st.divider()
 
-    # --- Model Info ---
     st.markdown("""
         <div style='text-align:center;'>
             <p style='color:#333333; font-size:12px;'>
@@ -397,20 +355,13 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-print("✅ Part 3 done!")
-# ============================================================
-# MAIN TABS
-# ============================================================
 tab1, tab2, tab3, tab4 = st.tabs([
     "📈 Demand Prediction",
     "💰 Sales Analytics",
     "📦 Inventory Forecasting",
     "🌊 Seasonal Analysis"
 ])
-
-# ============================================================
-# TAB 1 — DEMAND PREDICTION
-# ============================================================
+#demand prediction
 with tab1:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
@@ -431,14 +382,12 @@ with tab1:
         with st.spinner("⚡ Fetching demand data..."):
 
             if year <= 2024:
-                # ── ACTUAL DATA ──
                 actual = monthly_store[
                     (monthly_store['year']          == year) &
                     (monthly_store['month']         == month) &
                     (monthly_store['store_id']      == store_id) &
                     (monthly_store['category_name'] == category)
                 ]
-
                 if actual.empty:
                     st.warning(f"⚠️ No data found for {month_name} {year} at {branch_name} for {category}")
                 else:
@@ -447,7 +396,6 @@ with tab1:
                     txn = int(actual['num_transactions'].values[0])
                     avg_p = int(actual['avg_price'].values[0])
 
-                    # KPI Cards
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("📦 Units Sold",       f"{qty:,}",    "Actual")
                     c2.metric("💰 Revenue",          f"${rev:,}",   "Actual")
@@ -456,7 +404,6 @@ with tab1:
 
                     st.divider()
 
-                    # Monthly trend for this store + category
                     trend = monthly_store[
                         (monthly_store['store_id']      == store_id) &
                         (monthly_store['category_name'] == category) &
@@ -466,7 +413,6 @@ with tab1:
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        # Bar chart - monthly demand
                         fig1 = px.bar(
                             trend,
                             x='month', y='total_quantity',
@@ -489,7 +435,6 @@ with tab1:
                         st.plotly_chart(fig1, use_container_width=True)
 
                     with col2:
-                        # Year over year comparison
                         yoy = monthly_store[
                             (monthly_store['store_id']      == store_id) &
                             (monthly_store['category_name'] == category) &
@@ -514,10 +459,7 @@ with tab1:
                         )
                         st.plotly_chart(fig2, use_container_width=True)
 
-                    # Top products table
                     st.markdown("### 🏆 Top Products — Actual Sales")
-                    
-                    # --- START OF NEW CODE FOR OVERALL TOP PRODUCT ---
                     try:
                         overall_top_data = master_df[
                             (master_df['year']       == year) &
@@ -531,8 +473,6 @@ with tab1:
                             st.success(f"🌟 **Store-wide Best Seller:** The overall top-selling product across all categories this month was **{overall_top_product}** with **{overall_top_qty:,}** units sold!")
                     except Exception as e:
                         pass
-                    # --- END OF NEW CODE FOR OVERALL TOP PRODUCT ---
-
                     top_products = master_df[
                         (master_df['year']       == year) &
                         (master_df['month']      == month) &
@@ -545,14 +485,10 @@ with tab1:
 
                     top_products['Revenue'] = top_products['Revenue'].apply(lambda x: f"${x:,}")
                     st.dataframe(top_products, use_container_width=True, hide_index=True)
-
             else:
-                # ── PREDICTED DATA ──
                 pred_qty, pred_rev = predict_future(
                     store_id, category, country, year, month
                 )
-
-                # Get last actual for comparison
                 last_actual = monthly_store[
                     (monthly_store['store_id']      == store_id) &
                     (monthly_store['category_name'] == category)
@@ -563,7 +499,6 @@ with tab1:
                 delta_pct = (delta / last_qty * 100) if last_qty > 0 else 0
                 avg_p    = int(last_actual['avg_price'].values[0]) if not last_actual.empty else 0
 
-                # KPI Cards
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("📦 Predicted Units", f"{pred_qty:,}",
                           f"{delta_pct:+.1f}% vs last actual")
@@ -573,8 +508,6 @@ with tab1:
                 c4.metric("🎯 Forecast Engine",    "XGBoost",      "Active")
 
                 st.divider()
-
-                # Build 12-month prediction for this year
                 monthly_preds = []
                 for m in range(1, 13):
                     q, r = predict_future(store_id, category, country, year, m)
@@ -616,7 +549,6 @@ with tab1:
                     st.plotly_chart(fig3, use_container_width=True)
 
                 with col2:
-                    # Actual + Predicted combined trend
                     hist = monthly_store[
                         (monthly_store['store_id']      == store_id) &
                         (monthly_store['category_name'] == category)
@@ -645,8 +577,6 @@ with tab1:
                         yaxis_title='Total Units'
                     )
                     st.plotly_chart(fig4, use_container_width=True)
-
-                # Prediction table
                 st.markdown("### 🔮 Full Year Prediction Table")
                 pred_display = pred_df.copy()
                 pred_display['pred_rev'] = pred_display['pred_rev'].apply(lambda x: f"${x:,}")
@@ -664,9 +594,8 @@ with tab1:
                 <div style='font-size: 16px; font-weight: 500;'>Forecast visualisations will appear here after selection</div>
             </div>
         """, unsafe_allow_html=True)
-# ============================================================
-# TAB 2 — SALES ANALYTICS
-# ============================================================
+
+#sales analytics
 with tab2:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
@@ -687,9 +616,6 @@ with tab2:
         with st.spinner("💰 Fetching sales analytics..."):
 
             if year <= 2024:
-                # ── ACTUAL SALES ANALYTICS ──
-
-                # Store level all categories for this month/year
                 store_month = monthly_store[
                     (monthly_store['store_id'] == store_id) &
                     (monthly_store['year']     == year) &
@@ -703,8 +629,6 @@ with tab2:
                     total_rev = int(store_month['total_revenue'].sum())
                     total_txn = int(store_month['num_transactions'].sum())
                     best_cat  = store_month.loc[store_month['total_revenue'].idxmax(), 'category_name']
-
-                    # KPI Cards
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("💰 Total Revenue",    f"${total_rev:,}")
                     c2.metric("📦 Total Units",      f"{total_qty:,}")
@@ -712,11 +636,8 @@ with tab2:
                     c4.metric("🏆 Best Category",    best_cat)
 
                     st.divider()
-
                     col1, col2 = st.columns(2)
-
                     with col1:
-                        # Revenue by category bar
                         fig1 = px.bar(
                             store_month.sort_values('total_revenue', ascending=True),
                             x='total_revenue', y='category_name',
@@ -736,7 +657,6 @@ with tab2:
                         st.plotly_chart(fig1, use_container_width=True)
 
                     with col2:
-                        # Revenue share pie
                         fig2 = px.pie(
                             store_month,
                             names='category_name',
@@ -752,7 +672,6 @@ with tab2:
                         )
                         st.plotly_chart(fig2, use_container_width=True)
 
-                    # Monthly revenue trend
                     st.markdown("### 📈 Monthly Revenue Trend")
                     monthly_rev = monthly_store[
                         (monthly_store['store_id'] == store_id) &
@@ -793,7 +712,6 @@ with tab2:
                     fig3.update_yaxes(title_text="Units Sold", secondary_y=True)
                     st.plotly_chart(fig3, use_container_width=True)
 
-                    # Top products by revenue
                     st.markdown("### 🏆 Top 10 Products by Revenue")
                     top_rev = master_df[
                         (master_df['year']     == year) &
@@ -810,7 +728,6 @@ with tab2:
                     st.dataframe(top_rev, use_container_width=True, hide_index=True)
 
             else:
-                # ── PREDICTED SALES ANALYTICS ──
                 all_cat_preds = []
                 for cat in categories:
                     q, r = predict_future(store_id, cat, country, year, month)
@@ -872,7 +789,6 @@ with tab2:
                     )
                     st.plotly_chart(fig5, use_container_width=True)
 
-                # Full year predicted revenue
                 st.markdown("### 🔮 Full Year Predicted Revenue")
                 yearly_pred = []
                 for m in range(1, 13):
@@ -900,9 +816,7 @@ with tab2:
             </div>
         """, unsafe_allow_html=True)
 
-# ============================================================
-# TAB 3 — INVENTORY FORECASTING
-# ============================================================
+#inveentory forecasting
 with tab3:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
@@ -921,8 +835,6 @@ with tab3:
 
     if predict_btn:
         with st.spinner("📦 Calculating inventory levels..."):
-
-            # Safety stock multipliers
             SAFETY_HIGH   = 2.0
             SAFETY_MEDIUM = 1.5
             SAFETY_LOW    = 1.2
@@ -936,7 +848,6 @@ with tab3:
                     return "🟢 Low", SAFETY_LOW
 
             if year <= 2024:
-                # ── ACTUAL INVENTORY ──
                 store_month_inv = monthly_store[
                     (monthly_store['store_id'] == store_id) &
                     (monthly_store['year']     == year) &
@@ -946,7 +857,6 @@ with tab3:
                 if store_month_inv.empty:
                     st.warning(f"⚠️ No data for {month_name} {year} at {branch_name}")
                 else:
-                    # Build inventory table
                     inv_rows = []
                     for _, row in store_month_inv.iterrows():
                         qty            = int(row['total_quantity'])
@@ -965,8 +875,6 @@ with tab3:
                     inv_df = pd.DataFrame(inv_rows).sort_values(
                         'Actual Sold', ascending=False
                     )
-
-                    # KPI Cards
                     total_sold  = inv_df['Actual Sold'].sum()
                     total_stock = inv_df['Recommended Stock'].sum()
                     high_risk   = len(inv_df[inv_df['Urgency'].str.contains('High')])
@@ -979,8 +887,6 @@ with tab3:
                     c4.metric("🟢 Low Urgency Items",     f"{low_risk}")
 
                     st.divider()
-
-                    # Inventory table
                     st.markdown("### 📋 Inventory Recommendation Table")
                     st.dataframe(inv_df, use_container_width=True, hide_index=True)
 
@@ -989,7 +895,6 @@ with tab3:
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        # Actual vs Recommended stock chart
                         fig1 = go.Figure()
                         fig1.add_trace(go.Bar(
                             name='Actual Sold',
@@ -1015,7 +920,6 @@ with tab3:
                         st.plotly_chart(fig1, use_container_width=True)
 
                     with col2:
-                        # Buffer stock needed
                         fig2 = px.bar(
                             inv_df.sort_values('Buffer Stock', ascending=True),
                             x='Buffer Stock', y='Category',
@@ -1033,7 +937,6 @@ with tab3:
                         )
                         st.plotly_chart(fig2, use_container_width=True)
 
-                    # Historical stock consumption
                     st.markdown("### 📈 Historical Stock Consumption Pattern")
                     hist_inv = monthly_store[
                         (monthly_store['store_id']      == store_id) &
@@ -1071,7 +974,6 @@ with tab3:
                     st.plotly_chart(fig3, use_container_width=True)
 
             else:
-                # ── PREDICTED INVENTORY ──
                 pred_inv_rows = []
                 for cat in categories:
                     pred_qty, pred_rev = predict_future(
@@ -1094,7 +996,6 @@ with tab3:
                     'Predicted Sales', ascending=False
                 )
 
-                # KPI Cards
                 total_pred  = pred_inv_df['Predicted Sales'].sum()
                 total_stock = pred_inv_df['Stock to Keep'].sum()
                 high_risk   = len(pred_inv_df[pred_inv_df['Urgency'].str.contains('High')])
@@ -1107,8 +1008,6 @@ with tab3:
                 c4.metric("🟢 Low Urgency Items",   f"{low_risk}")
 
                 st.divider()
-
-                # Inventory prediction table
                 st.markdown("### 📋 Predicted Inventory Table")
                 st.dataframe(pred_inv_df, use_container_width=True, hide_index=True)
 
@@ -1142,7 +1041,6 @@ with tab3:
                     st.plotly_chart(fig4, use_container_width=True)
 
                 with col2:
-                    # Urgency distribution pie
                     urgency_counts = pred_inv_df['Urgency'].value_counts().reset_index()
                     urgency_counts.columns = ['Urgency','Count']
                     fig5 = px.pie(
@@ -1163,8 +1061,6 @@ with tab3:
                         font_color='#f5f5f7'
                     )
                     st.plotly_chart(fig5, use_container_width=True)
-
-                # 12 month inventory plan
                 st.markdown("### 📅 12-Month Inventory Plan")
                 yearly_inv = []
                 for m in range(1, 13):
@@ -1178,7 +1074,6 @@ with tab3:
                     })
                 st.dataframe(pd.DataFrame(yearly_inv),
                              use_container_width=True, hide_index=True)
-
     else:
         st.markdown("""
             <div class='custom-info-box'>
@@ -1190,11 +1085,7 @@ with tab3:
             </div>
         """, unsafe_allow_html=True)
 
-
-
-# ============================================================
-# TAB 4 — SEASONAL ANALYSIS
-# ============================================================
+#seasonal analysis
 with tab4:
     st.markdown(f"""
         <div style='display:flex; align-items:center; gap:12px; margin-bottom:10px;'>
@@ -1218,9 +1109,6 @@ with tab4:
                             'Jul','Aug','Sep','Oct','Nov','Dec']
 
             if year <= 2024:
-                # ── ACTUAL SEASONAL ANALYSIS ──
-
-                # Full year data for this store
                 store_year = monthly_store[
                     (monthly_store['store_id'] == store_id) &
                     (monthly_store['year']     == year)
@@ -1238,8 +1126,6 @@ with tab4:
                     dip_qty     = int(store_year['total_quantity'].min())
                     total_qty   = int(store_year['total_quantity'].sum())
                     total_rev   = int(store_year['total_revenue'].sum())
-
-                    # KPI Cards
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("📅 Peak Month",    month_labels[peak_month-1], f"{peak_qty:,} units")
                     c2.metric("❄️ Dip Month",     month_labels[dip_month-1],  f"{dip_qty:,} units")
@@ -1247,8 +1133,6 @@ with tab4:
                     c4.metric("💰 Total Revenue", f"${total_rev:,}")
 
                     st.divider()
-
-                    # Seasonal tags
                     def season_tag(m):
                         if m in [12, 1, 2]: return "❄️ Winter"
                         elif m in [3, 4, 5]: return "🌱 Spring"
@@ -1271,7 +1155,6 @@ with tab4:
                     col1, col2 = st.columns(2)
 
                     with col1:
-                        # Monthly demand with seasonal colors
                         season_colors = {
                             '❄️ Winter': '#636EFA',
                             '🌱 Spring': '#00CC96',
@@ -1296,7 +1179,6 @@ with tab4:
                         st.plotly_chart(fig1, use_container_width=True)
 
                     with col2:
-                        # Revenue by season pie
                         season_rev = store_year.groupby('season')['total_revenue'].sum().reset_index()
                         fig2 = px.pie(
                             season_rev,
@@ -1314,7 +1196,6 @@ with tab4:
                         )
                         st.plotly_chart(fig2, use_container_width=True)
 
-                    # Year over year heatmap
                     st.markdown("### 🗓️ Year-over-Year Heatmap")
                     heatmap_data = monthly_store[
                         monthly_store['store_id'] == store_id
@@ -1339,7 +1220,6 @@ with tab4:
                     )
                     st.plotly_chart(fig3, use_container_width=True)
 
-                    # Quarter comparison
                     st.markdown("### 📊 Quarter-wise Performance")
                     store_year['quarter'] = store_year['month'].apply(
                         lambda x: f"Q{(x-1)//3+1}"
@@ -1382,7 +1262,6 @@ with tab4:
                         )
                         st.plotly_chart(fig5, use_container_width=True)
 
-                    # Seasonal summary table
                     st.markdown("### 📋 Monthly Seasonal Summary")
                     summary = store_year[[
                         'month_name','total_quantity',
@@ -1394,8 +1273,6 @@ with tab4:
                     st.dataframe(summary, use_container_width=True, hide_index=True)
 
             else:
-                # ── PROPHET SEASONAL FORECAST ──
-
                 if 'country' in prophet_forecast.columns:
                     forecast_year = prophet_forecast[
                         (prophet_forecast['ds'].dt.year == year) &
@@ -1435,7 +1312,6 @@ with tab4:
                         ]['total_quantity'].sum()
                     growth = ((total_pred - last_actual_total) / last_actual_total * 100)
 
-                    # KPI Cards
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("📅 Peak Month",      peak_m)
                     c2.metric("❄️ Dip Month",       dip_m)
@@ -1443,7 +1319,6 @@ with tab4:
                     c4.metric("📈 vs 2024",         f"{growth:+.1f}%")
 
                     st.divider()
-
                     col1, col2 = st.columns(2)
 
                     with col1:
@@ -1581,11 +1456,7 @@ with tab4:
                         yaxis_title='Total Units'
                     )
                     st.plotly_chart(fig8, use_container_width=True)
-
     else:
         st.info("👈 Select your filters from the sidebar and click **🚀 Generate Forecast**")
 
-# ============================================================
-# MEMORY CLEANUP
-# ============================================================
 gc.collect()
