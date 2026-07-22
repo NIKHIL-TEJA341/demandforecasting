@@ -38,58 +38,138 @@ st.markdown("""
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
-    /* Sidebar */
+    /* Sidebar Background & Headers */
     section[data-testid="stSidebar"] {
         background-color: #0f172a !important;
-        border-right: none;
+        border-right: none !important;
     }
-    section[data-testid="stSidebar"] * {
+    
+    section[data-testid="stSidebar"] label,
+    section[data-testid="stSidebar"] p,
+    section[data-testid="stSidebar"] h1,
+    section[data-testid="stSidebar"] h2,
+    section[data-testid="stSidebar"] h3,
+    section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] * {
         color: #f8fafc !important;
     }
-    /* Style the selectbox */
-    section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+
+    /* Sidebar Selectbox Container, Control & Text - Works on Local & Streamlit Cloud */
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
+        color: #f8fafc !important;
+    }
+
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] > div,
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"],
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] div[data-baseweb="select"] div,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] div[role="combobox"] {
         background-color: #1e293b !important;
-        border-color: #334155 !important;
         color: #f8fafc !important;
+        border-color: #334155 !important;
         border-radius: 8px !important;
+    }
+
+    /* Selectbox selected value text & icons */
+    section[data-testid="stSidebar"] div[data-baseweb="select"] span,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] p,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] div,
+    section[data-testid="stSidebar"] div[data-baseweb="select"] input {
+        color: #f8fafc !important;
+        background-color: transparent !important;
+    }
+
+    section[data-testid="stSidebar"] div[data-baseweb="select"] svg {
+        fill: #f8fafc !important;
+        color: #f8fafc !important;
+    }
+
+    /* Dropdown Menu Popover Options (Expanded Selectbox) */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    div[data-baseweb="popover"] ul,
+    div[data-baseweb="popover"] li {
+        background-color: #1e293b !important;
+        color: #f8fafc !important;
+    }
+    div[data-baseweb="popover"] li:hover,
+    div[data-baseweb="popover"] li[aria-selected="true"] {
+        background-color: #0071e3 !important;
+        color: #ffffff !important;
+    }
+    div[data-baseweb="popover"] span,
+    div[data-baseweb="popover"] p,
+    div[data-baseweb="popover"] div {
+        color: #f8fafc !important;
     }
 
     /* Headers */
     h1 { color: #111827 !important; font-weight: 800 !important; }
     h2, h3 { color: #1e293b !important; font-weight: 700 !important; }
 
-    /* Tab styling */
+    /* Tab styling for Local and Streamlit Cloud */
+    div[data-testid="stTabs"] [data-baseweb="tab-list"],
     .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
+        gap: 8px !important;
+        background-color: transparent !important;
+        border-bottom: none !important;
+        padding-bottom: 4px !important;
     }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1e293b;
-        border-radius: 8px;
-        color: #f8fafc;
-        padding: 8px 24px;
-        border: none;
-        margin-right: 4px;
+
+    div[data-testid="stTabs"] button[data-baseweb="tab"],
+    div[data-testid="stTabs"] button[role="tab"],
+    div[data-testid="stTabs"] [data-testid="stTab"],
+    .stTabs [data-baseweb="tab"],
+    .stTabs button {
+        background-color: #1e293b !important;
+        border-radius: 8px !important;
+        color: #f8fafc !important;
+        padding: 10px 24px !important;
+        border: 1px solid #334155 !important;
+        margin-right: 4px !important;
+        font-weight: 600 !important;
+        font-size: 15px !important;
+        transition: all 0.2s ease !important;
     }
+
+    div[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] [aria-selected="true"],
     .stTabs [aria-selected="true"] {
         background-color: #0071e3 !important;
-        color: white !important;
+        color: #ffffff !important;
+        border-color: #0071e3 !important;
+        box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3) !important;
+    }
+
+    div[data-testid="stTabs"] button[data-baseweb="tab"]:hover,
+    div[data-testid="stTabs"] button[role="tab"]:hover {
+        background-color: #334155 !important;
+        color: #ffffff !important;
+    }
+
+    div[data-testid="stTabs"] [data-baseweb="tab-highlight-title"],
+    div[data-testid="stTabs"] [data-baseweb="tab-border"],
+    .stTabs [data-baseweb="tab-highlight-title"],
+    .stTabs [data-baseweb="tab-border"] {
+        display: none !important;
+        height: 0px !important;
     }
 
     /* Predict button */
     div.stButton > button {
-        background-color: #0071e3;
-        color: white;
-        border: none;
-        border-radius: 10px;
-        padding: 12px 30px;
-        font-size: 16px;
-        font-weight: 600;
-        width: 100%;
-        transition: 0.3s;
+        background-color: #0071e3 !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 12px 30px !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        width: 100% !important;
+        transition: 0.3s !important;
     }
     div.stButton > button:hover {
-        background-color: #0077ed;
-        transform: scale(1.02);
+        background-color: #0077ed !important;
+        transform: scale(1.02) !important;
     }
 
     /* Badges */
